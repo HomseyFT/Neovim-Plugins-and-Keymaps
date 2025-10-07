@@ -1,13 +1,13 @@
--- 1) Set leader early
-vim.g.mapleader = " "          -- Space as leader
-vim.g.maplocalleader = " "     -- optional
+-- 1) sets leader
+vim.g.mapleader = " "          -- space as leader
+vim.g.maplocalleader = " "     
 
 vim.keymap.set("n", "<leader>ar", function()
   -- file info
   local file = vim.fn.expand("%:p")
   local dir  = vim.fn.fnamemodify(file, ":h"):gsub("\\","/")
   local base = vim.fn.fnamemodify(file, ":t:r")
-  -- 8.3-safe name (first 8 chars, upper-case)
+  -- required bc .com needs to be <= 8 chars
   local short = string.upper(base:gsub("%W",""):sub(1,8))
   if short == "" then short = "PROG" end
 
@@ -20,7 +20,7 @@ vim.keymap.set("n", "<leader>ar", function()
   vim.cmd("!" .. assemble .. " && " .. run)
 end, { desc = "Save + Assemble + Run (.COM in DOSBox-X, 8.3 name)" })
 
--- assemble-only version
+-- assemble only version
 vim.keymap.set("n", "<leader>ab", function()
   local file = vim.fn.expand("%:p")
   local dir  = vim.fn.fnamemodify(file, ":h"):gsub("\\","/")
@@ -33,7 +33,7 @@ vim.keymap.set("n", "<leader>ab", function()
 end, { desc = "Save + Assemble (.COM, 8.3 name)" })
 
 
--- 2) Sensible Telescope keymaps (normal mode)
+-- 2) telescope keymaps
 local map = vim.keymap.set
 local builtin = require('telescope.builtin')
 
@@ -42,29 +42,29 @@ map('n', '<leader>fg', builtin.live_grep,  { desc = 'Live grep' })
 map('n', '<leader>fb', builtin.buffers,    { desc = 'Buffers' })
 map('n', '<leader>fh', builtin.help_tags,  { desc = 'Help tags' })
 
--- Optional: more handy pickers
+-- pickers
 map('n', '<leader>fr', builtin.oldfiles,   { desc = 'Recent files' })
 map('n', '<leader>fs', builtin.grep_string,{ desc = 'Grep word under cursor' })
 
--- 3) Core window navigation (works without any plugin)
+-- 3) window nav
 map('n', '<C-h>', '<C-w>h', { desc = 'Left split' })
 map('n', '<C-j>', '<C-w>j', { desc = 'Down split' })
 map('n', '<C-k>', '<C-w>k', { desc = 'Up split' })
 map('n', '<C-l>', '<C-w>l', { desc = 'Right split' })
 
--- 4) Quick quality-of-life
+-- 4) QOL stuff
 map('n', '<leader>w', ':w<CR>', { desc = 'Save' })
 map('n', '<leader>q', ':q<CR>', { desc = 'Quit' })
 
 
 
 return {
-  -- LSP Config
+  -- LSP config
   {
     "neovim/nvim-lspconfig",
   },
 
-  -- Autocompletion
+  -- autocomplete
   {
     "hrsh7th/nvim-cmp",
     dependencies = {
@@ -77,25 +77,25 @@ return {
     },
   },
 
-  -- Treesitter for syntax highlighting
+  -- syntax highlights
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
   },
 
-  -- Telescope fuzzy finder
+  -- telescope fuzzy finder
   {
     "nvim-telescope/telescope.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
   },
 
-  -- File explorer
+  -- file explorer
   {
     "nvim-tree/nvim-tree.lua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
   },
 
-  -- Colorscheme
+  -- colorscheme
   {
     "EdenEast/nightfox.nvim",
   },
