@@ -1,63 +1,3 @@
--- 1) sets leader
-vim.g.mapleader = " "          -- space as leader
-vim.g.maplocalleader = " "     
-
-vim.keymap.set("n", "<leader>ar", function()
-  -- file info
-  local file = vim.fn.expand("%:p")
-  local dir  = vim.fn.fnamemodify(file, ":h"):gsub("\\","/")
-  local base = vim.fn.fnamemodify(file, ":t:r")
-  -- required bc .com needs to be <= 8 chars
-  local short = string.upper(base:gsub("%W",""):sub(1,8))
-  if short == "" then short = "PROG" end
-
-  -- build commands
-  local out = string.format('%s/%s.com', dir, short)
-  local assemble = string.format('nasm -f bin "%s" -o "%s"', file, out)
-  local run = string.format('dosbox-x -c "mount c %s" -c "c:" -c "%s.com" -c "pause" -c "exit"', dir, short)
-
-  vim.cmd("w")
-  vim.cmd("!" .. assemble .. " && " .. run)
-end, { desc = "Save + Assemble + Run (.COM in DOSBox-X, 8.3 name)" })
-
--- assemble only version
-vim.keymap.set("n", "<leader>ab", function()
-  local file = vim.fn.expand("%:p")
-  local dir  = vim.fn.fnamemodify(file, ":h"):gsub("\\","/")
-  local base = vim.fn.fnamemodify(file, ":t:r")
-  local short = string.upper(base:gsub("%W",""):sub(1,8))
-  if short == "" then short = "PROG" end
-  local out = string.format('%s/%s.com', dir, short)
-  vim.cmd("w")
-  vim.cmd(string.format('!nasm -f bin "%s" -o "%s"', file, out))
-end, { desc = "Save + Assemble (.COM, 8.3 name)" })
-
-
--- 2) telescope keymaps
-local map = vim.keymap.set
-local builtin = require('telescope.builtin')
-
-map('n', '<leader>ff', builtin.find_files, { desc = 'Find files' })
-map('n', '<leader>fg', builtin.live_grep,  { desc = 'Live grep' })
-map('n', '<leader>fb', builtin.buffers,    { desc = 'Buffers' })
-map('n', '<leader>fh', builtin.help_tags,  { desc = 'Help tags' })
-
--- pickers
-map('n', '<leader>fr', builtin.oldfiles,   { desc = 'Recent files' })
-map('n', '<leader>fs', builtin.grep_string,{ desc = 'Grep word under cursor' })
-
--- 3) window nav
-map('n', '<C-h>', '<C-w>h', { desc = 'Left split' })
-map('n', '<C-j>', '<C-w>j', { desc = 'Down split' })
-map('n', '<C-k>', '<C-w>k', { desc = 'Up split' })
-map('n', '<C-l>', '<C-w>l', { desc = 'Right split' })
-
--- 4) QOL stuff
-map('n', '<leader>w', ':w<CR>', { desc = 'Save' })
-map('n', '<leader>q', ':q<CR>', { desc = 'Quit' })
-
-
-
 return {
   -- LSP config
   {
@@ -67,6 +7,7 @@ return {
   -- autocomplete
   {
     "hrsh7th/nvim-cmp",
+    event = { "InsertEnter", "CmdlineEnter" },
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",   -- LSP source
       "hrsh7th/cmp-buffer",     -- buffer completions
@@ -75,12 +16,69 @@ return {
       "L3MON4D3/LuaSnip",       -- snippets engine
       "saadparwaiz1/cmp_luasnip", -- snippet completions
     },
+    config = function()
+      local cmp = require("cmp")
+      local luasnip = require("luasnip")
+
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert({
+          ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+          ["<C-f>"] = cmp.mapping.scroll_docs(4),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.abort(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<S-Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+        }),
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          { name = "luasnip" },
+        }, {
+          { name = "buffer" },
+          { name = "path" },
+        }),
+      })
+    end,
   },
 
   -- syntax highlights
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
+    config = function()
+      require("nvim-treesitter.configs").setup({
+        ensure_installed = {
+          "python", "java", "javascript", "typescript",
+          "c", "cpp", "rust", "asm", "go", "lua",
+          "bash", "json", "yaml", "toml", "markdown",
+          "html", "css",
+        },
+        auto_install = true,
+        highlight = { enable = true },
+        indent = { enable = true },
+      })
+    end,
   },
 
   -- telescope fuzzy finder
@@ -95,9 +93,65 @@ return {
     dependencies = { "nvim-tree/nvim-web-devicons" },
   },
 
-  -- colorscheme
+  -- colorscheme (sunset neon vibes)
   {
-    "EdenEast/nightfox.nvim",
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1000,
+    config = function()
+      require("catppuccin").setup({
+        flavour = "mocha",
+        term_colors = true,
+        integrations = {
+          treesitter = true,
+          cmp = true,
+          nvimtree = true,
+          telescope = { enabled = true },
+          native_lsp = {
+            enabled = true,
+          },
+        },
+      })
+      vim.cmd.colorscheme("catppuccin")
+    end,
+  },
+
+  -- dashboard
+  {
+    "goolord/alpha-nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      local alpha = require("alpha")
+      local dashboard = require("alpha.themes.dashboard")
+
+      dashboard.section.header.val = {
+        [[                                                    ]],
+        [[ ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗]],
+        [[ ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║]],
+        [[ ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║]],
+        [[ ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║]],
+        [[ ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║]],
+        [[ ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]],
+        [[                                                    ]],
+      }
+
+      dashboard.section.buttons.val = {
+        dashboard.button("f", "  Find file",       ":Telescope find_files <CR>"),
+        dashboard.button("r", "  Recent files",    ":Telescope oldfiles <CR>"),
+        dashboard.button("g", "  Find word",       ":Telescope live_grep <CR>"),
+        dashboard.button("e", "  New file",        ":ene <BAR> startinsert <CR>"),
+        dashboard.button("c", "  Configuration",   ":e ~/.config/nvim/lua/plugins/init.lua <CR>"),
+        dashboard.button("q", "  Quit",            ":qa<CR>"),
+      }
+
+      dashboard.section.header.opts.hl = "@keyword"
+      dashboard.section.buttons.opts.hl = "@function"
+      dashboard.section.footer.opts.hl = "@comment"
+
+      dashboard.section.footer.val = "🌅 sunset.nvim"
+
+      alpha.setup(dashboard.opts)
+    end,
   },
 }
 
