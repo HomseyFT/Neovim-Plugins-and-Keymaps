@@ -66,19 +66,13 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
-    config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = {
-          "python", "java", "javascript", "typescript",
-          "c", "cpp", "rust", "asm", "go", "lua",
-          "bash", "json", "yaml", "toml", "markdown",
-          "html", "css",
-        },
-        auto_install = true,
-        highlight = { enable = true },
-        indent = { enable = true },
-      })
-    end,
+    ensure_installed = {
+      "python", "java", "javascript", "typescript",
+      "c", "cpp", "rust", "asm", "go", "lua",
+      "bash", "json", "yaml", "toml", "markdown",
+      "html", "css",
+    },
+    auto_install = true,
   },
 
   -- telescope fuzzy finder
